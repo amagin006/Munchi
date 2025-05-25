@@ -1,0 +1,21 @@
+{
+  "name": "petcare-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "build": "pnpm --filter web build",
+    "type-check": "pnpm --recursive type-check",
+    "lint": "pnpm --recursive lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.11.0"
+  },
+  "packageManager": "pnpm@10.11.0"
+}
