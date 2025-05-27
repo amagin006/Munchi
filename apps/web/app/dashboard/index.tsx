@@ -7,9 +7,7 @@ import { getServerClient, signOut } from "../util/supabase/supabaseClient";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const supabase = await getServerClient(request);
-  const { data } = await supabase.from("test").select("*");
   return {
-    data,
     env: {
       SUPABASE_URL: process.env.SUPABASE_URL!,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
@@ -33,19 +31,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">🐾 PetCare</h1>
+            <h1 className="text-xl font-bold text-gray-900">🐾 Munchi</h1>
             <div className="flex items-center gap-2">
               <Link
                 to="/settings"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                ⚙️ 設定
+                ⚙️ Settings
               </Link>
               <button
                 onClick={handleLogout}
                 className="ml-2 text-gray-600 hover:text-red-600 transition-colors border border-gray-300 rounded px-3 py-1 text-sm"
               >
-                🚪 ログアウト
+                🚪 Logout
               </button>
             </div>
           </div>

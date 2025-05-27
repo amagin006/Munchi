@@ -8,6 +8,14 @@ import {
   getServerClient,
   signIn,
 } from "../util/supabase/supabaseClient";
+import { Button } from "~/components/ui/button";
+
+export function meta({}: Route.MetaArgs) {
+  return [
+    { title: "Munchi Login page" },
+    { name: "description", content: "Welcome to Munch!" },
+  ];
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
   const sbServerClient = await getServerClient(request);
@@ -137,22 +145,20 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      {/* ログインフォーム */}
       <div className="bg-white rounded-xl p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">ログイン</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">Login</h2>
 
         <Form method="post" className="space-y-4" onSubmit={onSubmit}>
-          {/* 全般エラー */}
           {errors?.general && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-sm text-red-600">{errors.general}</p>
             </div>
           )}
 
-          {/* メールアドレス */}
+          {/* mail address */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              メールアドレス
+              Email
             </label>
             <input
               type="email"
@@ -172,10 +178,10 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
             )}
           </div>
 
-          {/* パスワード */}
+          {/* password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              パスワード
+              Password
             </label>
             <input
               type="password"
@@ -194,7 +200,6 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
             )}
           </div>
 
-          {/* ログインボタン */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -221,37 +226,23 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                ログイン中...
+                Loading
               </>
             ) : (
-              "ログイン"
+              <>Login</>
             )}
           </button>
         </Form>
 
-        {/* アカウント作成リンク */}
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            アカウントをお持ちでない方は{" "}
+        <div className="mt-6 text-center">
+          <Button variant="default" asChild>
             <Link
               to="/register"
-              className="text-blue-500 hover:text-blue-600 font-medium"
+              className="text-white hover:bg-cyan-500 font-medium bg-cyan-600"
             >
-              新規登録
+              Create account
             </Link>
-          </p>
-        </div>
-      </div>
-
-      {/* デモ用の案内 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <h3 className="text-sm font-medium text-blue-900 mb-2">
-          💡 開発中のデモ
-        </h3>
-        <div className="text-xs text-blue-700 space-y-1">
-          <p>• 実際のSupabase認証が実装されています</p>
-          <p>• テストアカウントでログインできます</p>
-          <p>• 新規登録も可能です</p>
+          </Button>
         </div>
       </div>
 

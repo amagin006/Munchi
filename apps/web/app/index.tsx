@@ -8,12 +8,13 @@ export async function loader({ request }: Route.LoaderArgs) {
     const userResponse = await sbServerClient.auth.getUser();
 
     if (userResponse?.data?.user) {
-      throw redirect("/dashboard");
+      return redirect("/dashboard");
     } else {
-      throw redirect("/login");
+      console.log("--555555555");
+      return redirect("/login");
     }
   } catch (error) {
     console.log("Error login: ", error);
-    throw redirect("/login");
+    return redirect("/login");
   }
 }
