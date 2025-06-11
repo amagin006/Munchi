@@ -24,6 +24,7 @@ import { useNavigate } from "react-router";
 import { useCallback } from "react";
 import type { Route } from "./+types/index";
 import { getServerClient, signOut } from "@/util/supabase/supabaseClient";
+import { Header } from "@/components/ui/Header";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   // const supabase = await getServerClient(request);
@@ -66,23 +67,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-xl font-bold text-gray-900">Munchi</h1>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </div>
-          </div>
-        </header>
+        <Header onProfileClick={handleLogout} />
 
         <main className="max-w-md mx-auto px-4 py-6">
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center space-y-6">
@@ -154,21 +139,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">Munchi</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-      </header>
+      <Header onProfileClick={handleLogout} />
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Pet Selector */}
