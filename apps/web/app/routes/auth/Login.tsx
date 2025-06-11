@@ -1,13 +1,13 @@
 // app/auth/login.tsx
-import { Form, Link, useNavigate, useNavigation } from "react-router";
-import type { Route } from "./+types/login";
-import { redirect } from "react-router";
 import { useState } from "react";
+import { Form, Link, redirect, useNavigate, useNavigation } from "react-router";
+import type { Route } from "./+types/Login";
 import {
   getBrowserClient,
   getServerClient,
   signIn,
-} from "../util/supabase/supabaseClient";
+} from "@/util/supabase/supabaseClient";
+
 import { Button } from "@/components/ui/button";
 
 export function meta({}: Route.MetaArgs) {
@@ -105,7 +105,7 @@ export async function action({ request }: Route.ActionArgs) {
   // }
 }
 
-export default function LoginPage({ loaderData }: Route.ComponentProps) {
+export default function Login({ loaderData }: Route.ComponentProps) {
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;

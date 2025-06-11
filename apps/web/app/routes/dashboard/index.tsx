@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import { Link, useNavigate } from "react-router";
+import type { Route } from "./+types/index";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   PlusCircle,
@@ -20,9 +22,6 @@ import {
   Dog,
   Pill,
 } from "lucide-react";
-import { useNavigate } from "react-router";
-import { useCallback } from "react";
-import type { Route } from "./+types/index";
 import { getServerClient, signOut } from "@/util/supabase/supabaseClient";
 import { Header } from "@/components/ui/Header";
 
@@ -92,10 +91,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
             {/* Call to action */}
             <div className="space-y-4 w-full max-w-sm">
-              <Button className="w-full h-12 text-lg" size="lg">
-                <PlusCircle className="h-5 w-5 mr-2" />
-                Add Your First Pet
-              </Button>
+              <Link to="/add-pet">
+                <Button className="w-full h-12 text-lg" size="lg">
+                  <PlusCircle className="h-5 w-5 mr-2" />
+                  Add Your First Pet
+                </Button>
+              </Link>
 
               <div className="text-xs text-gray-500 space-y-1">
                 <p>You can add multiple pets and switch between them anytime</p>
@@ -144,9 +145,21 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Pet Selector */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Select Pet
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">
+              Select Pet
+            </label>
+            <Link to="/addPet">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50"
+              >
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add Pet
+              </Button>
+            </Link>
+          </div>
           <Select value={selectedPet} onValueChange={setSelectedPet}>
             <SelectTrigger className="w-full">
               <SelectValue />
