@@ -1,5 +1,4 @@
 import { createBrowserClient, createServerClient, parseCookieHeader, serializeCookieHeader } from "@supabase/ssr";
-import { redirect } from "react-router";
 
 export async function getServerClient(request: Request) {
   const headers = new Headers()

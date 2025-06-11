@@ -8,7 +8,7 @@ import {
   getServerClient,
   signIn,
 } from "../util/supabase/supabaseClient";
-import { Button } from "~/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export function meta({}: Route.MetaArgs) {
   return [
