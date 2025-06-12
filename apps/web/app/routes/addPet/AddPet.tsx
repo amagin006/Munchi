@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { ArrowLeft, Cat, Dog, Heart, Save, AlertCircle } from "lucide-react";
+"use client";
 
+import React, { useState } from "react";
+import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,82 +12,64 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Cat, Dog, Heart, Save, AlertCircle } from "lucide-react";
+import {
+  type PetForm,
+  validatePetForm,
+  transformFormToPetInsert,
+  getPetTypeDisplayName,
+} from "@/lib/pets/types";
+import { createPet } from "@/lib/pets/pets";
 
-type PetFormData = {
-  name: string;
-  type: string;
-  age: string;
-  weight: string;
-  weightUnit: string;
-};
+interface AddPetProps {
+  createPetAction: (formData: FormData) => Promise<any>;
+}
 
-type PetFormErrors = {
-  name?: string | null;
-  type?: string | null;
-  age?: string | null;
-  weight?: string | null;
-};
-
-export default function AddPet() {
+export default function AddPet({ createPetAction }: AddPetProps) {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState<PetFormData>({
+  const [formData, setFormData] = useState<PetForm>({
     name: "",
-    type: "",
+    type: undefined as any,
     age: "",
     weight: "",
-    weightUnit: "kg",
+    weight_unit: "kg",
   });
 
-  const [errors, setErrors] = useState<PetFormErrors>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (field: keyof PetFormData, value: string) => {
+  const handleInputChange = (field: keyof PetForm, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
 
-    // Clear error when user starts typing (weightUnitにはエラーがないので除外)
-    if (field !== "weightUnit" && errors[field as keyof PetFormErrors]) {
+    // Clear error when user starts typing
+    if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
-        [field]: null,
+        [field]: "",
       }));
     }
   };
 
   const validateForm = () => {
-    const newErrors: PetFormErrors = {};
+    const validation = validatePetForm(formData);
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Pet name is required";
+    if (!validation.success) {
+      const newErrors: Record<string, string> = {};
+      validation.error.errors.forEach((error) => {
+        if (error.path.length > 0) {
+          newErrors[error.path[0] as string] = error.message;
+        }
+      });
+      setErrors(newErrors);
+      return false;
     }
 
-    if (!formData.type) {
-      newErrors.type = "Pet type is required";
-    }
-
-    if (
-      formData.age &&
-      (!/^\d+$/.test(formData.age) ||
-        parseInt(formData.age, 10) < 0 ||
-        parseInt(formData.age, 10) > 99)
-    ) {
-      newErrors.age = "Please enter a valid age (0-99)";
-    }
-
-    if (
-      formData.weight &&
-      (isNaN(Number(formData.weight)) ||
-        parseFloat(formData.weight) <= 0 ||
-        parseFloat(formData.weight) > 999)
-    ) {
-      newErrors.weight = "Please enter a valid weight (0-999)";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors({});
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -96,24 +78,32 @@ export default function AddPet() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Transform form data to insert data
+      const petInsertData = transformFormToPetInsert(formData);
 
-      console.log("Pet data to save:", formData);
-      // Here you would integrate with Supabase
-      // await savePetToDatabase(formData);
+      // Create pet in Supabase
+      const { data, error } = await createPet(petInsertData);
 
-      // Navigate back to dashboard
-      navigate("/dashboard");
+      if (error) {
+        // Show error message
+        setErrors({ submit: error.message || "Failed to create pet" });
+        return;
+      }
+
+      if (data) {
+        // Success! Navigate back to dashboard
+        navigate("/dashboard");
+      }
     } catch (error) {
-      console.error("Error saving pet:", error);
-      alert("Failed to register pet. Please try again.");
+      console.error("Unexpected error:", error);
+      setErrors({ submit: "An unexpected error occurred. Please try again." });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleBack = () => {
+    console.log("----------");
     navigate("/dashboard");
   };
 
@@ -131,6 +121,17 @@ export default function AddPet() {
 
       <main className="max-w-md mx-auto px-4 py-6">
         <div className="space-y-6">
+          {/* Submit Error */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="flex items-center gap-2 text-red-800">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">Error</span>
+              </div>
+              <p className="text-sm text-red-700 mt-1">{errors.submit}</p>
+            </div>
+          )}
+
           {/* Pet Type Selection */}
           <Card>
             <CardHeader className="pb-3">
@@ -146,7 +147,7 @@ export default function AddPet() {
                   Pet Type <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  value={formData.type}
+                  value={formData.type ?? ""}
                   onValueChange={(value) => handleInputChange("type", value)}
                 >
                   <SelectTrigger
@@ -191,11 +192,8 @@ export default function AddPet() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) =>
-                    handleInputChange("name", e.target.value.slice(0, 30))
-                  }
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="Enter your pet's name"
-                  maxLength={30}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.name ? "border-red-500" : "border-gray-300"
                   }`}
@@ -229,8 +227,15 @@ export default function AddPet() {
                   step="1"
                   min="0"
                   max="99"
-                  value={formData.age}
-                  onChange={(e) => handleInputChange("age", e.target.value)}
+                  value={
+                    formData.age !== null && formData.age !== undefined
+                      ? formData.age.toString()
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleInputChange("age", value);
+                  }}
                   onBlur={(e) => {
                     const value = e.target.value;
                     if (value && parseInt(value, 10) > 99) {
@@ -241,7 +246,7 @@ export default function AddPet() {
                       }));
                     } else if (errors.age) {
                       // フォーカスアウト時にエラーが解消されたら消す
-                      setErrors((prev) => ({ ...prev, age: null }));
+                      setErrors((prev) => ({ ...prev, age: "" }));
                     }
                   }}
                   placeholder="e.g. 2"
@@ -268,10 +273,15 @@ export default function AddPet() {
                     step="0.1"
                     min="0"
                     max="999"
-                    value={formData.weight}
-                    onChange={(e) =>
-                      handleInputChange("weight", e.target.value)
+                    value={
+                      formData.weight !== null && formData.weight !== undefined
+                        ? formData.weight.toString()
+                        : ""
                     }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleInputChange("weight", value);
+                    }}
                     onBlur={(e) => {
                       const value = e.target.value;
                       if (value && parseFloat(value) > 999) {
@@ -281,7 +291,7 @@ export default function AddPet() {
                           weight: "Please enter a valid weight (0-999)",
                         }));
                       } else if (errors.weight) {
-                        setErrors((prev) => ({ ...prev, weight: null }));
+                        setErrors((prev) => ({ ...prev, weight: "" }));
                       }
                     }}
                     placeholder="e.g., 4.2"
@@ -290,9 +300,9 @@ export default function AddPet() {
                     }`}
                   />
                   <Select
-                    value={formData.weightUnit}
+                    value={formData.weight_unit}
                     onValueChange={(value) =>
-                      handleInputChange("weightUnit", value)
+                      handleInputChange("weight_unit", value)
                     }
                   >
                     <SelectTrigger className="w-20">
@@ -333,19 +343,12 @@ export default function AddPet() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-blue-900">
-                      {formData.name
-                        ? formData.name.length > 30
-                          ? formData.name.slice(0, 30) + "…"
-                          : formData.name
-                        : "Your Pet"}
+                      {formData.name || "Your Pet"}
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       {formData.type && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs capitalize"
-                        >
-                          {formData.type}
+                        <Badge variant="secondary" className="text-xs">
+                          {getPetTypeDisplayName(formData.type)}
                         </Badge>
                       )}
                       {formData.age && (
@@ -356,7 +359,7 @@ export default function AddPet() {
                     </div>
                     {formData.weight && (
                       <p className="text-sm text-blue-700 mt-1">
-                        {formData.weight} {formData.weightUnit}
+                        {formData.weight} {formData.weight_unit}
                       </p>
                     )}
                   </div>
@@ -378,7 +381,7 @@ export default function AddPet() {
             <Button
               className="flex-1 font-bold shadow-lg  bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleSubmit}
-              disabled={isLoading}
+              disabled={isLoading || !formData.name || !formData.type}
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">

@@ -12,25 +12,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import {
-  PlusCircle,
-  Clock,
-  Calendar,
-  Settings,
-  User,
-  Cat,
-  Dog,
-  Pill,
-} from "lucide-react";
-import { getServerClient, signOut } from "@/util/supabase/supabaseClient";
+import { PlusCircle, Clock, Calendar, Cat, Dog, Pill } from "lucide-react";
+import { signOut } from "@/util/supabase/client";
 import { Header } from "@/components/ui/Header";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   // const supabase = await getServerClient(request);
   return {
     env: {
-      SUPABASE_URL: process.env.SUPABASE_URL!,
-      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY!,
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY!,
     },
   };
 };
@@ -41,7 +32,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const { env } = loaderData;
 
   const handleLogout = useCallback(async () => {
-    const error = await signOut(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+    const error = await signOut(
+      env.VITE_SUPABASE_URL,
+      env.VITE_SUPABASE_ANON_KEY
+    );
     if (!error) return navigate("/login");
   }, [navigate]);
 
