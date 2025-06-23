@@ -8,7 +8,9 @@ export default [
   route("register", "./routes/auth/Register.tsx"),
   // dashboard - (main page)
   route('dashboard', "./routes/dashboard/index.tsx"),
-  route("addPet", "./routes/addPet/AddPet.tsx"),
+  route("addPet", "./routes/dashboard/AddPet.tsx"),
+  route("recordFeeding", "./routes/dashboard/RecordFeeding.tsx"),
+  route("addFood", "./routes/dashboard/AddFood.tsx"),
   // settings 
   route("settings", "./routes/settings/index.tsx"),
 ] satisfies RouteConfig;

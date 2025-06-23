@@ -1,25 +1,27 @@
 import { createClient } from '@/util/supabase/client'
 import type { Pet, PetInsert, PetUpdate } from '@/lib/pets/types'
 import { validatePetInsert, validatePetUpdate } from '@/lib/pets/types'
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 
 /**
  * Get all pets for the current user
  */
-export async function getPets(): Promise<{ data: Pet[] | null; error: any }> {
+export async function getPets(client: SupabaseClient): Promise<{ data: Pet[] | null; error: any }> {
   try {
-    const supabaseBrowserClient = createClient()
-    const { data: { user } } = await supabaseBrowserClient.auth.getUser()
+    const { data: { user } } = await client.auth.getUser()
+    console.log('user', user)
 
     if (!user) {
       return { data: null, error: 'User not authenticated' }
     }
 
-    const { data, error } = await supabaseBrowserClient
+    const { data, error } = await client
       .from('pets')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
+    console.log('data===,error', data, error)
 
     return { data, error }
   } catch (error) {
@@ -30,16 +32,15 @@ export async function getPets(): Promise<{ data: Pet[] | null; error: any }> {
 /**
  * Get a specific pet by ID
  */
-export async function getPetById(petId: string): Promise<{ data: Pet | null; error: any }> {
+export async function getPetById(client: SupabaseClient, petId: string): Promise<{ data: Pet | null; error: any }> {
   try {
-    const supabaseBrowserClient = createClient()
-    const { data: { user } } = await supabaseBrowserClient.auth.getUser()
+    const { data: { user } } = await client.auth.getUser()
 
     if (!user) {
       return { data: null, error: 'User not authenticated' }
     }
 
-    const { data, error } = await supabaseBrowserClient
+    const { data, error } = await client
       .from('pets')
       .select('*')
       .eq('id', petId)
@@ -55,9 +56,8 @@ export async function getPetById(petId: string): Promise<{ data: Pet | null; err
 /**
  * Create a new pet with validation
  */
-export async function createPet(petData: PetInsert): Promise<{ data: Pet | null; error: any }> {
+export async function createPet(client: SupabaseClient, petData: PetInsert): Promise<{ data: Pet | null; error: any }> {
   try {
-    const supabase = createClient()
     // Validate input data
     const validation = validatePetInsert(petData)
     if (!validation.success) {
@@ -67,13 +67,13 @@ export async function createPet(petData: PetInsert): Promise<{ data: Pet | null;
       }
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await client.auth.getUser()
 
     if (!user) {
       return { data: null, error: 'User not authenticated' }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('pets')
       .insert({
         ...validation.data,
@@ -91,8 +91,7 @@ export async function createPet(petData: PetInsert): Promise<{ data: Pet | null;
 /**
  * Update an existing pet with validation
  */
-export async function updatePet(petId: string, petData: PetUpdate): Promise<{ data: Pet | null; error: any }> {
-  const supabaseBrowserClient = createClient()
+export async function updatePet(client: SupabaseClient, petId: string, petData: PetUpdate): Promise<{ data: Pet | null; error: any }> {
   try {
     // Validate input data
     const validation = validatePetUpdate(petData)
@@ -103,13 +102,13 @@ export async function updatePet(petId: string, petData: PetUpdate): Promise<{ da
       }
     }
 
-    const { data: { user } } = await supabaseBrowserClient.auth.getUser()
+    const { data: { user } } = await client.auth.getUser()
 
     if (!user) {
       return { data: null, error: 'User not authenticated' }
     }
 
-    const { data, error } = await supabaseBrowserClient
+    const { data, error } = await client
       .from('pets')
       .update(validation.data)
       .eq('id', petId)
@@ -126,16 +125,15 @@ export async function updatePet(petId: string, petData: PetUpdate): Promise<{ da
 /**
  * Delete a pet
  */
-export async function deletePet(petId: string): Promise<{ error: any }> {
-  const supabaseBrowserClient = createClient()
+export async function deletePet(client: SupabaseClient, petId: string): Promise<{ error: any }> {
   try {
-    const { data: { user } } = await supabaseBrowserClient.auth.getUser()
+    const { data: { user } } = await client.auth.getUser()
 
     if (!user) {
       return { error: 'User not authenticated' }
     }
 
-    const { error } = await supabaseBrowserClient
+    const { error } = await client
       .from('pets')
       .delete()
       .eq('id', petId)
@@ -150,16 +148,15 @@ export async function deletePet(petId: string): Promise<{ error: any }> {
 /**
  * Get the user's first pet (for default selection)
  */
-export async function getFirstPet(): Promise<{ data: Pet | null; error: any }> {
-  const supabaseBrowserClient = createClient()
+export async function getFirstPet(client: SupabaseClient): Promise<{ data: Pet | null; error: any }> {
   try {
-    const { data: { user } } = await supabaseBrowserClient.auth.getUser()
+    const { data: { user } } = await client.auth.getUser()
 
     if (!user) {
       return { data: null, error: 'User not authenticated' }
     }
 
-    const { data, error } = await supabaseBrowserClient
+    const { data, error } = await client
       .from('pets')
       .select('*')
       .eq('user_id', user.id)

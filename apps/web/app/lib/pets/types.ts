@@ -141,15 +141,3 @@ export const getPetTypeDisplayName = (type: PetType): string => {
       return 'Unknown'
   }
 }
-
-// Helper function to format weight display
-export const formatWeight = (weight: number | null, unit: WeightUnit | null): string => {
-  if (!weight || !unit) return ''
-  return `${weight} ${unit}`
-}
-
-// Helper function to format age display
-export const formatAge = (age: number | null): string => {
-  if (!age) return ''
-  return age === 1 ? '1 year' : `${age} years`
-}

@@ -20,6 +20,7 @@ import {
   getPetTypeDisplayName,
 } from "@/lib/pets/types";
 import { createPet } from "@/lib/pets/pets";
+import { createClient } from "@/util/supabase/client";
 
 interface AddPetProps {
   createPetAction: (formData: FormData) => Promise<any>;
@@ -82,7 +83,8 @@ export default function AddPet({ createPetAction }: AddPetProps) {
       const petInsertData = transformFormToPetInsert(formData);
 
       // Create pet in Supabase
-      const { data, error } = await createPet(petInsertData);
+      const supabaseClient = createClient();
+      const { data, error } = await createPet(supabaseClient, petInsertData);
 
       if (error) {
         // Show error message

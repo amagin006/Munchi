@@ -85,7 +85,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
             {/* Call to action */}
             <div className="space-y-4 w-full max-w-sm">
-              <Link to="/add-pet">
+              <Link to="/addPet">
                 <Button className="w-full h-12 text-lg" size="lg">
                   <PlusCircle className="h-5 w-5 mr-2" />
                   Add Your First Pet
@@ -236,10 +236,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-gray-700">Quick Actions</h3>
           <div className="grid grid-cols-1 gap-3">
-            <Button className="h-12 text-left justify-start gap-3" size="lg">
-              <PlusCircle className="h-5 w-5" />
-              Record Feeding
-            </Button>
+            <Link to="/recordFeeding">
+              <Button className="h-12 text-left justify-start gap-3" size="lg">
+                <PlusCircle className="h-5 w-5" />
+                Record Feeding
+              </Button>
+            </Link>
             <Button
               variant="outline"
               className="h-12 text-left justify-start gap-3"

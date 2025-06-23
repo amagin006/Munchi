@@ -199,11 +199,7 @@ export default function Login({ loaderData }: Route.ComponentProps) {
                 )}
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
-              >
+              <Button type="submit" disabled={isSubmitting} variant="primary">
                 {isSubmitting ? (
                   <>
                     <svg
@@ -230,7 +226,7 @@ export default function Login({ loaderData }: Route.ComponentProps) {
                 ) : (
                   <>Login</>
                 )}
-              </button>
+              </Button>
             </Form>
 
             <div className="mt-6 text-center">
