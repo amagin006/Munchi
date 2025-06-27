@@ -15,21 +15,51 @@ import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Clock, Calendar, Cat, Dog, Pill } from "lucide-react";
 import { signOut } from "@/util/supabase/client";
 import { Header } from "@/components/ui/Header";
+import { getServerClient } from "@/util/supabase/server";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  // const supabase = await getServerClient(request);
+  const supabase = await getServerClient(request);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  let todaysRecords = [];
+  if (user) {
+    const { start, end } = getTodayRange();
+    const { data: records, error: recordsError } = await supabase
+      .from("food_records")
+      .select("*, food_master(*)")
+      .eq("user_id", user.id)
+      .gte("meal_time", start)
+      .lt("meal_time", end)
+      .order("meal_time", { ascending: false });
+    console.log("records", records);
+    console.log("error", recordsError);
+    if (!recordsError && records) {
+      todaysRecords = records;
+    }
+  }
   return {
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY!,
     },
+    todaysRecords,
   };
 };
+
+function getTodayRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(start);
+  end.setDate(start.getDate() + 1);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const [selectedPet, setSelectedPet] = useState("momo");
   const navigate = useNavigate();
-  const { env } = loaderData;
+  const { env, todaysRecords } = loaderData;
 
   const handleLogout = useCallback(async () => {
     const error = await signOut(
@@ -229,6 +259,29 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {todayRecords[todayRecords.length - 1]?.time || "No records"}
               </span>
             </div>
+            {todaysRecords && todaysRecords.length > 0 && (
+              <div className="pt-4">
+                <h2 className="text-base font-semibold mb-2">今日の記録</h2>
+                <ul className="space-y-2">
+                  {todaysRecords.map((rec) => (
+                    <li
+                      key={rec.id}
+                      className="p-3 bg-gray-50 rounded shadow flex flex-col"
+                    >
+                      <span className="font-medium">
+                        {rec.food_master?.name || "(不明なフード)"}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(rec.meal_time).toLocaleTimeString("ja-JP", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -168,6 +168,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
     const { error: recordError } = await supabase.from("food_records").insert({
       user_id: user.id,
       pet_id: petId,
+      food_id: foodId,
       meal_time: new Date().toISOString(),
       meal_type: mealType,
       eating_status: "all",
