@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Form, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/RecordFeeding";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,7 +19,7 @@ import { Header } from "@/components/ui/Header";
 import { getServerClient } from "@/util/supabase/server";
 import { signOut } from "@/util/supabase/client";
 import { getPets } from "@/lib/pets/pets";
-import { getFoodMaster } from "@/lib/foods/foodMaster";
+import { getAllFoodMaster } from "@/lib/foods/foodMaster";
 import type { Pet } from "@/lib/pets/types";
 import type { FoodMaster } from "@/lib/foods/types";
 
@@ -32,6 +32,7 @@ interface LoaderData {
   favoriteFoods: FoodMaster[];
   popularFoods: FoodMaster[];
   recentFoods: FoodMaster[];
+  allFoods: FoodMaster[];
   selectedPetId?: string;
   error?: string;
 }
@@ -57,6 +58,21 @@ export const loader = async ({
 
   try {
     const supabase = await getServerClient(request);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return {
+        ...baseData,
+        pets: [],
+        favoriteFoods: [],
+        popularFoods: [],
+        recentFoods: [],
+        allFoods: [],
+        error: "Authentication required",
+      };
+    }
     const url = new URL(request.url);
     const selectedPetId = url.searchParams.get("petId");
 
@@ -70,44 +86,42 @@ export const loader = async ({
         favoriteFoods: [],
         popularFoods: [],
         recentFoods: [],
+        allFoods: [],
         error: "Failed to fetch pets",
       };
     }
 
-    const { data: favoriteFoods, error: favoriteFoodsError } =
-      await getFoodMaster(supabase);
+    // 1回のAPIコールで全て取得
+    const { data: allFoods, error: foodsError } =
+      await getAllFoodMaster(supabase);
 
-    // // Fetch popular foods (high usage count, not favorites)
-    // const { data: popularFoods, error: popularFoodsError } = await supabase
-    //   .from("food_master")
-    //   .select("*")
-    //   .eq("user_id", user.id)
-    //   .eq("is_active", true)
-    //   .eq("is_favorite", false)
-    //   .gt("usage_count", 0)
-    //   .order("usage_count", { ascending: false })
-    //   .limit(5);
+    if (foodsError) {
+      console.error("Error fetching foods:", foodsError);
+      return {
+        ...baseData,
+        pets: pets || [],
+        favoriteFoods: [],
+        popularFoods: [],
+        recentFoods: [],
+        allFoods: [],
+        error: "Failed to fetch foods",
+      };
+    }
 
-    // // Fetch recently used foods (not favorites, not in popular)
-    // const { data: recentFoods, error: recentFoodsError } = await supabase
-    //   .from("food_master")
-    //   .select("*")
-    //   .eq("user_id", user.id)
-    //   .eq("is_active", true)
-    //   .eq("is_favorite", false)
-    //   .not("last_used_at", "is", null)
-    //   .order("last_used_at", { ascending: false })
-    //   .limit(5);
-
-    // if (favoriteFoodsError || popularFoodsError || recentFoodsError) {
-    //   console.error("Error fetching foods:", {
-    //     favoriteFoodsError,
-    //     popularFoodsError,
-    //     recentFoodsError,
-    //   });
-    // }
-    const popularFoods: FoodMaster[] = [];
-    const recentFoods: FoodMaster[] = [];
+    // JS側で分類
+    const favoriteFoods = (allFoods || []).filter((f) => f.is_favorite);
+    const popularFoods = (allFoods || [])
+      .filter((f) => !f.is_favorite && f.usage_count > 0)
+      .sort((a, b) => b.usage_count - a.usage_count)
+      .slice(0, 5);
+    const recentFoods = (allFoods || [])
+      .filter((f) => !f.is_favorite && f.last_used_at)
+      .sort((a, b) => {
+        const dateA = a.last_used_at ? new Date(a.last_used_at).getTime() : 0;
+        const dateB = b.last_used_at ? new Date(b.last_used_at).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, 5);
 
     return {
       ...baseData,
@@ -115,7 +129,7 @@ export const loader = async ({
       favoriteFoods: favoriteFoods || [],
       popularFoods: popularFoods || [],
       recentFoods: recentFoods || [],
-      // selectedPetId,
+      allFoods: allFoods || [],
     };
   } catch (error) {
     console.error("Loader error:", error);
@@ -125,6 +139,7 @@ export const loader = async ({
       favoriteFoods: [],
       popularFoods: [],
       recentFoods: [],
+      allFoods: [],
       error: "An unexpected error occurred",
     };
   }
@@ -206,6 +221,7 @@ export default function RecordFeeding({
     recentFoods,
     selectedPetId,
     error,
+    allFoods,
   } = loaderData;
   const [recordingFood, setRecordingFood] = useState<string | null>(null);
 
@@ -505,6 +521,34 @@ export default function RecordFeeding({
                   onQuickRecord={handleQuickRecord}
                 />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* All Foods */}
+        {allFoods && allFoods.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-gray-700">
+                すべてのフード
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {allFoods
+                .filter(
+                  (food) =>
+                    !favoriteFoods.some((f) => f.id === food.id) &&
+                    !popularFoods.some((f) => f.id === food.id) &&
+                    !recentFoods.some((f) => f.id === food.id)
+                )
+                .map((food) => (
+                  <FoodCard
+                    key={food.id}
+                    food={food}
+                    icon={null}
+                    onQuickRecord={handleQuickRecord}
+                  />
+                ))}
             </div>
           </div>
         )}

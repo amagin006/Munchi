@@ -10,7 +10,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export async function getPets(client: SupabaseClient): Promise<{ data: Pet[] | null; error: any }> {
   try {
     const { data: { user } } = await client.auth.getUser()
-    console.log('user', user)
 
     if (!user) {
       return { data: null, error: 'User not authenticated' }
@@ -21,7 +20,6 @@ export async function getPets(client: SupabaseClient): Promise<{ data: Pet[] | n
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
-    console.log('data===,error', data, error)
 
     return { data, error }
   } catch (error) {
