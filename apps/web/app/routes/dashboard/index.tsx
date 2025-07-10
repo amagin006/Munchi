@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, Form } from "react-router";
 import type { Route } from "./+types/index";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,41 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Clock, Calendar, Cat, Dog, Pill } from "lucide-react";
+import {
+  PlusCircle,
+  Clock,
+  Calendar,
+  Cat,
+  Dog,
+  Pill,
+  Heart,
+  Plus,
+} from "lucide-react";
 import { signOut } from "@/util/supabase/client";
 import { Header } from "@/components/ui/Header";
 import { getServerClient } from "@/util/supabase/server";
+import { getAllFoodMaster } from "@/lib/foods/foodMaster";
+import type { FoodMaster } from "@/lib/foods/types";
+
+// Helper function to determine meal type based on current time
+const getMealTypeFromTime = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 11) return "breakfast";
+  if (hour >= 11 && hour < 16) return "lunch";
+  if (hour >= 16 && hour < 21) return "dinner";
+  return "snack";
+};
+
+// Helper function to format food type to Japanese
+const formatFoodType = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    dry: "ドライ",
+    wet: "ウェット",
+    treat: "おやつ",
+    supplement: "サプリ",
+  };
+  return typeMap[type] || type;
+};
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const supabase = await getServerClient(request);
@@ -24,6 +55,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     error: authError,
   } = await supabase.auth.getUser();
   let todaysRecords = [];
+  let favoriteFoods: FoodMaster[] = [];
   if (user) {
     const { start, end } = getTodayRange();
     const { data: records, error: recordsError } = await supabase
@@ -33,10 +65,15 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
       .gte("meal_time", start)
       .lt("meal_time", end)
       .order("meal_time", { ascending: false });
-    console.log("records", records);
-    console.log("error", recordsError);
     if (!recordsError && records) {
       todaysRecords = records;
+    }
+
+    // Fetch favorite foods
+    const { data: allFoods, error: foodsError } =
+      await getAllFoodMaster(supabase);
+    if (!foodsError && allFoods) {
+      favoriteFoods = allFoods.filter((food) => food.is_favorite);
     }
   }
   return {
@@ -45,7 +82,71 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY!,
     },
     todaysRecords,
+    favoriteFoods,
   };
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  try {
+    const supabase = await getServerClient(request);
+    const formData = await request.formData();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { error: "Authentication required" };
+    }
+
+    const petId = formData.get("petId") as string;
+    const foodId = formData.get("foodId") as string;
+    const mealType = formData.get("mealType") as string;
+    const amountGiven =
+      parseFloat(formData.get("amountGiven") as string) || null;
+
+    // Insert food record
+    const { error: recordError } = await supabase.from("food_records").insert({
+      user_id: user.id,
+      pet_id: petId,
+      food_id: foodId,
+      meal_time: new Date().toISOString(),
+      meal_type: mealType,
+      eating_status: "all",
+      amount_given: amountGiven,
+      amount_eaten: amountGiven, // Assume all eaten by default
+    });
+
+    if (recordError) {
+      console.error("Error inserting food record:", recordError);
+      return { error: "Failed to save feeding record" };
+    }
+
+    // Update food master usage stats
+    const { data: foodData, error: foodError } = await supabase
+      .from("food_master")
+      .select("usage_count")
+      .eq("id", foodId)
+      .single();
+
+    if (!foodError && foodData) {
+      const { error: updateError } = await supabase
+        .from("food_master")
+        .update({
+          usage_count: foodData.usage_count + 1,
+          last_used_at: new Date().toISOString(),
+        })
+        .eq("id", foodId);
+      if (updateError) {
+        console.error("Error updating food master:", updateError);
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Action error:", error);
+    return { error: "An unexpected error occurred" };
+  }
 };
 
 function getTodayRange() {
@@ -56,10 +157,24 @@ function getTodayRange() {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const [selectedPet, setSelectedPet] = useState("momo");
+export default function Dashboard({
+  loaderData,
+  actionData,
+}: Route.ComponentProps) {
+  const { env, todaysRecords, favoriteFoods } = loaderData;
+  const [recordingFood, setRecordingFood] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { env, todaysRecords } = loaderData;
+
+  // Mock data - set to empty array to test no pets state
+  // const pets = [];
+  const pets = [
+    { id: "momo", name: "Momo", type: "cat", age: "3 years", weight: "4.2 kg" },
+    { id: "coco", name: "Coco", type: "dog", age: "2 years", weight: "8.5 kg" },
+  ];
+
+  const [selectedPet, setSelectedPet] = useState<(typeof pets)[0] | null>(
+    pets[0]
+  );
 
   const handleLogout = useCallback(async () => {
     const error = await signOut(
@@ -69,12 +184,36 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     if (!error) return navigate("/login");
   }, [navigate]);
 
-  // Mock data - set to empty array to test no pets state
-  // const pets = [];
-  const pets = [
-    { id: "momo", name: "Momo", type: "cat", age: "3 years", weight: "4.2 kg" },
-    { id: "coco", name: "Coco", type: "dog", age: "2 years", weight: "8.5 kg" },
-  ];
+  const handleQuickRecord = async (food: FoodMaster) => {
+    if (!selectedPet) {
+      console.error("No pet selected");
+      return;
+    }
+
+    setRecordingFood(food.id);
+
+    // Create form data for submission
+    const formData = new FormData();
+    formData.append("petId", selectedPet.id);
+    formData.append("foodId", food.id);
+    formData.append("mealType", getMealTypeFromTime());
+    formData.append("amountGiven", "50"); // Default amount
+
+    // Submit form programmatically
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.style.display = "none";
+
+    for (const [key, value] of formData.entries()) {
+      const input = document.createElement("input");
+      input.name = key;
+      input.value = value as string;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+  };
 
   const todayRecords = [
     { time: "08:00", food: "Morning Kibble", amount: "50g" },
@@ -82,7 +221,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     { time: "18:00", food: "Dinner Wet Food", amount: "85g" },
   ];
 
-  const selectedPetData = pets.find((pet) => pet.id === selectedPet);
+  const selectedPetData = selectedPet;
   const PetIcon = selectedPetData?.type === "cat" ? Cat : Dog;
 
   // No pets registered state
@@ -157,6 +296,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
         </main>
+
+        {/* Hidden form for submissions */}
+        <Form method="post" style={{ display: "none" }} />
       </div>
     );
   }
@@ -184,7 +326,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </Button>
             </Link>
           </div>
-          <Select value={selectedPet} onValueChange={setSelectedPet}>
+          <Select
+            value={selectedPet?.id || ""}
+            onValueChange={(value) => {
+              const pet = pets.find((p) => p.id === value);
+              setSelectedPet(pet || null);
+            }}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -249,55 +397,111 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 variant="outline"
                 className="bg-green-50 text-green-700 border-green-200"
               >
-                {todayRecords.length} meals
+                {todaysRecords.length} meals
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Last feeding</span>
-              <span className="text-sm font-medium text-gray-900 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {todayRecords[todayRecords.length - 1]?.time || "No records"}
-              </span>
-            </div>
             {todaysRecords && todaysRecords.length > 0 && (
-              <div className="pt-4">
-                <h2 className="text-base font-semibold mb-2">今日の記録</h2>
-                <ul className="space-y-2">
-                  {todaysRecords.map((rec) => (
-                    <li
-                      key={rec.id}
-                      className="p-3 bg-gray-50 rounded shadow flex flex-col"
-                    >
-                      <span className="font-medium">
-                        {rec.food_master?.name || "(不明なフード)"}
+              <div className="mt-3 space-y-2">
+                {todaysRecords.slice(0, 3).map((record, index) => (
+                  <div
+                    key={record.id || index}
+                    className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3 w-3 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-900">
+                        {record.food_master?.name || "Unknown Food"}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(rec.meal_time).toLocaleTimeString("ja-JP", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                    <span className="text-xs text-gray-600">
+                      {new Date(record.meal_time).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })}
+                    </span>
+                  </div>
+                ))}
+                {todaysRecords.length > 3 && (
+                  <div className="text-center">
+                    <span className="text-xs text-gray-500">
+                      +{todaysRecords.length - 3} more meals
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <h3 className="text-sm font-medium text-gray-700">Quick Actions</h3>
-          <div className="grid grid-cols-1 gap-3">
+
+          {/* Favorite Foods for One-Click Recording */}
+          {favoriteFoods && favoriteFoods.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      お気に入りフード
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {favoriteFoods.slice(0, 4).map((food) => (
+                      <div
+                        key={food.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Heart className="h-4 w-4 text-red-500" />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {food.name}
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-gray-200 text-gray-700 border-0 ml-2"
+                            >
+                              {formatFoodType(food.type)}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleQuickRecord(food)}
+                          disabled={recordingFood === food.id}
+                          className="h-10 w-10 p-0 rounded-full border-2 border-gray-300 hover:border-gray-400 transition-colors"
+                        >
+                          {recordingFood === food.id ? (
+                            <span className="text-xs">...</span>
+                          ) : (
+                            <Plus className="h-5 w-5" />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="space-y-2">
             <Link to="/recordFeeding">
-              <Button className="h-12 text-left justify-start gap-3" size="lg">
+              <Button
+                className="w-full h-12 text-left justify-start gap-3"
+                size="lg"
+              >
                 <PlusCircle className="h-5 w-5" />
                 Record Feeding
               </Button>
             </Link>
             <Button
               variant="outline"
-              className="h-12 text-left justify-start gap-3"
+              className="w-full h-12 text-left justify-start gap-3"
               size="lg"
             >
               <Pill className="h-5 w-5" />
@@ -305,52 +509,6 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
         </div>
-
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {todayRecords.length > 0 ? (
-              <div className="space-y-3">
-                {todayRecords
-                  .slice()
-                  .reverse()
-                  .map((record, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Clock className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {record.food}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            {record.amount}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-600">
-                        {record.time}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-gray-500">
-                <p className="text-sm">No feeding records today</p>
-                <p className="text-xs mt-1">
-                  Tap "Record Feeding" to get started
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </main>
     </div>
   );
