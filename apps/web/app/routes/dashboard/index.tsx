@@ -27,6 +27,8 @@ import { Header } from "@/components/ui/Header";
 import { getServerClient } from "@/util/supabase/server";
 import { getAllFoodMaster } from "@/lib/foods/foodMaster";
 import type { FoodMaster } from "@/lib/foods/types";
+import { getPets } from "@/lib/pets/pets";
+import type { Pet } from "@/lib/pets/types";
 
 // Helper function to determine meal type based on current time
 const getMealTypeFromTime = (): string => {
@@ -56,11 +58,12 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   } = await supabase.auth.getUser();
   let todaysRecords = [];
   let favoriteFoods: FoodMaster[] = [];
+  let pets: Pet[] = [];
   if (user) {
     const { start, end } = getTodayRange();
     const { data: records, error: recordsError } = await supabase
       .from("food_records")
-      .select("*, food_master(*)")
+      .select("*, food_master(*), pets(*)")
       .eq("user_id", user.id)
       .gte("meal_time", start)
       .lt("meal_time", end)
@@ -75,6 +78,12 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     if (!foodsError && allFoods) {
       favoriteFoods = allFoods.filter((food) => food.is_favorite);
     }
+
+    // Fetch user's pets
+    const { data: userPets, error: petsError } = await getPets(supabase);
+    if (!petsError && userPets) {
+      pets = userPets;
+    }
   }
   return {
     env: {
@@ -83,6 +92,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     },
     todaysRecords,
     favoriteFoods,
+    pets,
   };
 };
 
@@ -161,19 +171,12 @@ export default function Dashboard({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
-  const { env, todaysRecords, favoriteFoods } = loaderData;
+  const { env, todaysRecords, favoriteFoods, pets } = loaderData;
   const [recordingFood, setRecordingFood] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Mock data - set to empty array to test no pets state
-  // const pets = [];
-  const pets = [
-    { id: "momo", name: "Momo", type: "cat", age: "3 years", weight: "4.2 kg" },
-    { id: "coco", name: "Coco", type: "dog", age: "2 years", weight: "8.5 kg" },
-  ];
-
-  const [selectedPet, setSelectedPet] = useState<(typeof pets)[0] | null>(
-    pets[0]
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(
+    pets.length > 0 ? pets[0] : null
   );
 
   const handleLogout = useCallback(async () => {
@@ -369,13 +372,17 @@ export default function Dashboard({
                     <Badge variant="secondary" className="text-xs">
                       {selectedPetData.type === "cat" ? "Cat" : "Dog"}
                     </Badge>
-                    <span className="text-sm text-gray-600">
-                      {selectedPetData.age}
-                    </span>
+                    {selectedPetData.age && (
+                      <span className="text-sm text-gray-600">
+                        {selectedPetData.age} years
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {selectedPetData.weight}
-                  </p>
+                  {selectedPetData.weight && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {selectedPetData.weight} {selectedPetData.weight_unit || 'kg'}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -402,26 +409,42 @@ export default function Dashboard({
             </div>
             {todaysRecords && todaysRecords.length > 0 && (
               <div className="mt-3 space-y-2">
-                {todaysRecords.slice(0, 3).map((record, index) => (
-                  <div
-                    key={record.id || index}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-900">
-                        {record.food_master?.name || "Unknown Food"}
+                {todaysRecords.slice(0, 3).map((record, index) => {
+                  const PetIcon = record.pets?.type === "cat" ? Cat : Dog;
+                  return (
+                    <div
+                      key={record.id || index}
+                      className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 flex-1">
+                        <PetIcon className="h-3 w-3 text-gray-500" />
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900 truncate">
+                              {record.food_master?.name || "Unknown Food"}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-700 border-blue-200"
+                            >
+                              {record.pets?.name || "Unknown Pet"}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {record.meal_type && record.meal_type.charAt(0).toUpperCase() + record.meal_type.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-600 ml-2">
+                        {new Date(record.meal_time).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-600">
-                      {new Date(record.meal_time).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
                 {todaysRecords.length > 3 && (
                   <div className="text-center">
                     <span className="text-xs text-gray-500">
