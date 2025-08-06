@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState } from "react";
 import { Link, useNavigate, Form } from "react-router";
 import type { Route } from "./+types/index";
 
@@ -22,7 +22,6 @@ import {
   Heart,
   Plus,
 } from "lucide-react";
-import { signOut } from "@/util/supabase/client";
 import { Header } from "@/components/ui/Header";
 import { getServerClient } from "@/util/supabase/server";
 import { getAllFoodMaster } from "@/lib/foods/foodMaster";
@@ -179,13 +178,9 @@ export default function Dashboard({
     pets.length > 0 ? pets[0] : null
   );
 
-  const handleLogout = useCallback(async () => {
-    const error = await signOut(
-      env.VITE_SUPABASE_URL,
-      env.VITE_SUPABASE_ANON_KEY
-    );
-    if (!error) return navigate("/login");
-  }, [navigate]);
+  const onProfile = () => {
+    navigate("/settings");
+  };
 
   const handleQuickRecord = async (food: FoodMaster) => {
     if (!selectedPet) {
@@ -218,11 +213,6 @@ export default function Dashboard({
     form.submit();
   };
 
-  const todayRecords = [
-    { time: "08:00", food: "Morning Kibble", amount: "50g" },
-    { time: "12:30", food: "Lunch Treats", amount: "20g" },
-    { time: "18:00", food: "Dinner Wet Food", amount: "85g" },
-  ];
 
   const selectedPetData = selectedPet;
   const PetIcon = selectedPetData?.type === "cat" ? Cat : Dog;
@@ -232,7 +222,7 @@ export default function Dashboard({
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <Header onProfileClick={handleLogout} />
+        <Header onProfileClick={onProfile} />
 
         <main className="max-w-md mx-auto px-4 py-6">
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center space-y-6">
@@ -309,7 +299,7 @@ export default function Dashboard({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header onProfileClick={handleLogout} />
+      <Header onProfileClick={onProfile} />
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Pet Selector */}
@@ -380,7 +370,8 @@ export default function Dashboard({
                   </div>
                   {selectedPetData.weight && (
                     <p className="text-sm text-gray-600 mt-1">
-                      {selectedPetData.weight} {selectedPetData.weight_unit || 'kg'}
+                      {selectedPetData.weight}{" "}
+                      {selectedPetData.weight_unit || "kg"}
                     </p>
                   )}
                 </div>
@@ -431,16 +422,21 @@ export default function Dashboard({
                             </Badge>
                           </div>
                           <span className="text-xs text-gray-500">
-                            {record.meal_type && record.meal_type.charAt(0).toUpperCase() + record.meal_type.slice(1)}
+                            {record.meal_type &&
+                              record.meal_type.charAt(0).toUpperCase() +
+                                record.meal_type.slice(1)}
                           </span>
                         </div>
                       </div>
                       <span className="text-xs text-gray-600 ml-2">
-                        {new Date(record.meal_time).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        })}
+                        {new Date(record.meal_time).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          }
+                        )}
                       </span>
                     </div>
                   );

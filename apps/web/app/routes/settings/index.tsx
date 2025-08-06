@@ -1,7 +1,38 @@
-// app/pages/settings.tsx
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import type { Route } from "./+types/index";
+import { getServerClient } from "@/util/supabase/server";
+import { signOut } from "@/util/supabase/client";
 
-export default function SettingsPage() {
+interface LoaderData {
+  env: {
+    VITE_SUPABASE_URL: string;
+    VITE_SUPABASE_ANON_KEY: string;
+  };
+  error?: string;
+}
+
+export const loader = async ({
+  request,
+}: Route.LoaderArgs): Promise<LoaderData> => {
+  return {
+    env: {
+      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL!,
+      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY!,
+    },
+  };
+};
+
+export default function SettingsPage({ loaderData }: Route.ComponentProps) {
+  const navigate = useNavigate();
+  const { env } = loaderData;
+
+  const handleLogout = async () => {
+    const error = await signOut(
+      env.VITE_SUPABASE_URL,
+      env.VITE_SUPABASE_ANON_KEY
+    );
+    if (!error) navigate("/login");
+  };
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
@@ -89,32 +120,25 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* ナビゲーション */}
+          {/* アカウント */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              ページナビゲーション
+              アカウント
             </h3>
             <div className="space-y-3">
               <Link
-                to="/"
+                to="/dashboard"
                 className="block w-full bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium text-center transition-colors"
               >
-                🏠 ホームページへ
+                🏠 ダッシュボードへ戻る
               </Link>
               
-              <Link
-                to="/login"
-                className="block w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium text-center transition-colors"
+              <button
+                onClick={handleLogout}
+                className="block w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium text-center transition-colors"
               >
-                🔐 ログインページへ
-              </Link>
-              
-              <Link
-                to="/settings"
-                className="block w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg font-medium text-center transition-colors"
-              >
-                ⚙️ 設定（現在のページ）
-              </Link>
+                🚪 ログアウト
+              </button>
             </div>
           </div>
         </div>

@@ -30,7 +30,6 @@ interface LoaderData {
   };
   pets: Pet[];
   favoriteFoods: FoodMaster[];
-  popularFoods: FoodMaster[];
   recentFoods: FoodMaster[];
   allFoods: FoodMaster[];
   selectedPetId?: string;
@@ -67,7 +66,6 @@ export const loader = async ({
         ...baseData,
         pets: [],
         favoriteFoods: [],
-        popularFoods: [],
         recentFoods: [],
         allFoods: [],
         error: "Authentication required",
@@ -84,7 +82,6 @@ export const loader = async ({
         ...baseData,
         pets: [],
         favoriteFoods: [],
-        popularFoods: [],
         recentFoods: [],
         allFoods: [],
         error: "Failed to fetch pets",
@@ -101,7 +98,6 @@ export const loader = async ({
         ...baseData,
         pets: pets || [],
         favoriteFoods: [],
-        popularFoods: [],
         recentFoods: [],
         allFoods: [],
         error: "Failed to fetch foods",
@@ -110,10 +106,6 @@ export const loader = async ({
 
     // JS側で分類
     const favoriteFoods = (allFoods || []).filter((f) => f.is_favorite);
-    const popularFoods = (allFoods || [])
-      .filter((f) => !f.is_favorite && f.usage_count > 0)
-      .sort((a, b) => b.usage_count - a.usage_count)
-      .slice(0, 5);
     const recentFoods = (allFoods || [])
       .filter((f) => !f.is_favorite && f.last_used_at)
       .sort((a, b) => {
@@ -127,7 +119,6 @@ export const loader = async ({
       ...baseData,
       pets: pets || [],
       favoriteFoods: favoriteFoods || [],
-      popularFoods: popularFoods || [],
       recentFoods: recentFoods || [],
       allFoods: allFoods || [],
     };
@@ -218,7 +209,6 @@ export default function RecordFeeding({
     env,
     pets,
     favoriteFoods,
-    popularFoods,
     recentFoods,
     selectedPetId,
     error,
@@ -482,27 +472,6 @@ export default function RecordFeeding({
           </div>
         )}
 
-        {/* Popular Foods */}
-        {popularFoods.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-              <h3 className="text-sm font-medium text-gray-700">
-                よく使うフード
-              </h3>
-            </div>
-            <div className="space-y-2">
-              {popularFoods.map((food) => (
-                <FoodCard
-                  key={food.id}
-                  food={food}
-                  icon={<TrendingUp className="h-3 w-3 text-blue-500" />}
-                  onQuickRecord={handleQuickRecord}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Recent Foods */}
         {recentFoods.length > 0 && (
@@ -539,7 +508,6 @@ export default function RecordFeeding({
                 .filter(
                   (food) =>
                     !favoriteFoods.some((f) => f.id === food.id) &&
-                    !popularFoods.some((f) => f.id === food.id) &&
                     !recentFoods.some((f) => f.id === food.id)
                 )
                 .map((food) => (
@@ -556,7 +524,6 @@ export default function RecordFeeding({
 
         {/* No foods state */}
         {favoriteFoods.length === 0 &&
-          popularFoods.length === 0 &&
           recentFoods.length === 0 && (
             <div className="text-center py-12 space-y-4">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
@@ -581,7 +548,6 @@ export default function RecordFeeding({
 
         {/* Add New Food Button */}
         {(favoriteFoods.length > 0 ||
-          popularFoods.length > 0 ||
           recentFoods.length > 0) && (
           <div className="pt-4 border-t">
             <Link to="/addFood">
