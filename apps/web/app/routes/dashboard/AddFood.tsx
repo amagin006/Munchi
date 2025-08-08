@@ -62,20 +62,20 @@ export const action = async ({ request }: Route.ActionArgs) => {
     }
 
     // Extract form data
-    const name = formData.get("name") as string;
+    const name = (formData.get("name") as string) || "";
     const brand = (formData.get("brand") as string) || "";
-    const type = formData.get("type") as string;
-    const caloriesPer100g = formData.get("caloriesPer100g") as string;
-    const proteinPer100g = formData.get("proteinPer100g") as string;
-    const fatPer100g = formData.get("fatPer100g") as string;
-    const carbPer100g = formData.get("carbPer100g") as string;
-    const packageSize = formData.get("packageSize") as string;
-    const price = formData.get("price") as string;
-    const purchaseUrl = formData.get("purchaseUrl") as string;
+    const type = (formData.get("type") as string) || "";
+    const caloriesPer100g = (formData.get("caloriesPer100g") as string) || "";
+    const proteinPer100g = (formData.get("proteinPer100g") as string) || "";
+    const fatPer100g = (formData.get("fatPer100g") as string) || "";
+    const carbPer100g = (formData.get("carbPer100g") as string) || "";
+    const packageSize = (formData.get("packageSize") as string) || "";
+    const price = (formData.get("price") as string) || "";
+    const purchaseUrl = (formData.get("purchaseUrl") as string) || "";
     const isFavorite = formData.get("isFavorite") === "true";
 
     // Validate required fields
-    if (!name || !type) {
+    if (!name.trim() || !type.trim()) {
       return { error: "フード名とタイプは必須です" };
     }
 
@@ -88,7 +88,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       protein_per_100g: proteinPer100g ? parseFloat(proteinPer100g) : null,
       fat_per_100g: fatPer100g ? parseFloat(fatPer100g) : null,
       carb_per_100g: carbPer100g ? parseFloat(carbPer100g) : null,
-      package_size: packageSize ? parseFloat(packageSize) : null,
+      package_size: packageSize ? packageSize.trim() : null,
       price: price ? parseFloat(price) : null,
       purchase_url: purchaseUrl.trim() || null,
       is_favorite: isFavorite,
@@ -333,12 +333,12 @@ export default function AddFood({ loaderData, actionData }: AddFoodProps) {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="packageSize">パッケージサイズ (g)</Label>
+                      <Label htmlFor="packageSize">パッケージサイズ</Label>
                       <Input
                         id="packageSize"
                         name="packageSize"
-                        type="number"
-                        placeholder="2000"
+                        type="text"
+                        placeholder="2kg"
                       />
                     </div>
                     <div className="space-y-2">
