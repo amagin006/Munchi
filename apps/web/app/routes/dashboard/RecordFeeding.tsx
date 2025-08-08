@@ -9,11 +9,11 @@ import {
   ArrowLeft,
   Clock,
   Heart,
-  TrendingUp,
   History,
   Plus,
   Check,
-  Settings,
+  Cat,
+  Dog,
 } from "lucide-react";
 import { Header } from "@/components/ui/Header";
 import { getServerClient } from "@/util/supabase/server";
@@ -128,7 +128,6 @@ export const loader = async ({
       ...baseData,
       pets: [],
       favoriteFoods: [],
-      popularFoods: [],
       recentFoods: [],
       allFoods: [],
       error: "An unexpected error occurred",
@@ -424,30 +423,47 @@ export default function RecordFeeding({
         </div>
 
         {/* Current Context */}
-        <Card>
+        <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-medium text-gray-900">
-                  {defaultPet?.name}
-                </h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <Clock className="h-3 w-3 text-gray-500" />
-                  <span className="text-sm text-gray-600">
-                    {getMealTypeLabel(currentMealType)} •{" "}
-                    {new Date().toLocaleTimeString("ja-JP", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center">
+                {defaultPet?.type === "cat" ? (
+                  <Cat className="h-6 w-6 text-orange-600" />
+                ) : defaultPet?.type === "dog" ? (
+                  <Dog className="h-6 w-6 text-orange-600" />
+                ) : (
+                  <Heart className="h-6 w-6 text-orange-600" />
+                )}
               </div>
-              <Link to="/record-feeding/details">
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-1" />
-                  詳細設定
-                </Button>
-              </Link>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-blue-900">
+                  {defaultPet?.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {defaultPet?.type === "cat"
+                      ? "猫"
+                      : defaultPet?.type === "dog"
+                        ? "犬"
+                        : "その他"}
+                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-blue-600" />
+                    <span className="text-sm text-blue-700">
+                      {getMealTypeLabel(currentMealType)} •{" "}
+                      {new Date().toLocaleTimeString("ja-JP", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+                {defaultPet?.age && (
+                  <p className="text-sm text-blue-700 mt-1">
+                    {defaultPet.age}歳
+                  </p>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -471,7 +487,6 @@ export default function RecordFeeding({
             </div>
           </div>
         )}
-
 
         {/* Recent Foods */}
         {recentFoods.length > 0 && (
@@ -523,32 +538,30 @@ export default function RecordFeeding({
         )}
 
         {/* No foods state */}
-        {favoriteFoods.length === 0 &&
-          recentFoods.length === 0 && (
-            <div className="text-center py-12 space-y-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                <Plus className="h-8 w-8 text-gray-400" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium text-gray-900">
-                  フードが登録されていません
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  新しいフードを追加して記録を始めましょう
-                </p>
-              </div>
-              <Link to="/addFood">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  フードを追加
-                </Button>
-              </Link>
+        {favoriteFoods.length === 0 && recentFoods.length === 0 && (
+          <div className="text-center py-12 space-y-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+              <Plus className="h-8 w-8 text-gray-400" />
             </div>
-          )}
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium text-gray-900">
+                フードが登録されていません
+              </h3>
+              <p className="text-gray-600 text-sm">
+                新しいフードを追加して記録を始めましょう
+              </p>
+            </div>
+            <Link to="/addFood">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                フードを追加
+              </Button>
+            </Link>
+          </div>
+        )}
 
         {/* Add New Food Button */}
-        {(favoriteFoods.length > 0 ||
-          recentFoods.length > 0) && (
+        {(favoriteFoods.length > 0 || recentFoods.length > 0) && (
           <div className="pt-4 border-t">
             <Link to="/addFood">
               <Button variant="outline" className="w-full">

@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/index";
-import { getServerClient } from "@/util/supabase/server";
 import { signOut } from "@/util/supabase/client";
 
 interface LoaderData {
@@ -39,15 +38,13 @@ export default function SettingsPage({ loaderData }: Route.ComponentProps) {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link 
+            <Link
               to="/"
               className="text-blue-500 hover:text-blue-600 transition-colors"
             >
               ← 戻る
             </Link>
-            <h1 className="text-xl font-bold text-gray-900">
-              ⚙️ 設定
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">⚙️ 設定</h1>
             <div className="w-12"></div> {/* スペーサー */}
           </div>
         </div>
@@ -63,17 +60,11 @@ export default function SettingsPage({ loaderData }: Route.ComponentProps) {
               プロフィール設定
             </h3>
             <div className="space-y-3">
-              <button 
+              <button
                 disabled
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium text-left cursor-not-allowed"
               >
                 👤 アカウント情報（未実装）
-              </button>
-              <button 
-                disabled
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium text-left cursor-not-allowed"
-              >
-                🔔 通知設定（未実装）
               </button>
             </div>
           </div>
@@ -84,13 +75,13 @@ export default function SettingsPage({ loaderData }: Route.ComponentProps) {
               ペット設定
             </h3>
             <div className="space-y-3">
-              <button 
+              <button
                 disabled
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium text-left cursor-not-allowed"
               >
                 🐕 ペット管理（未実装）
               </button>
-              <button 
+              <button
                 disabled
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium text-left cursor-not-allowed"
               >
@@ -105,13 +96,13 @@ export default function SettingsPage({ loaderData }: Route.ComponentProps) {
               アプリ設定
             </h3>
             <div className="space-y-3">
-              <button 
+              <button
                 disabled
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium text-left cursor-not-allowed"
               >
                 🎨 テーマ設定（未実装）
               </button>
-              <button 
+              <button
                 disabled
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium text-left cursor-not-allowed"
               >
@@ -132,7 +123,7 @@ export default function SettingsPage({ loaderData }: Route.ComponentProps) {
               >
                 🏠 ダッシュボードへ戻る
               </Link>
-              
+
               <button
                 onClick={handleLogout}
                 className="block w-full bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium text-center transition-colors"
@@ -146,9 +137,11 @@ export default function SettingsPage({ loaderData }: Route.ComponentProps) {
         {/* 現在のパス表示 */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            現在：<span className="font-mono bg-gray-100 px-2 py-1 rounded">
+            現在：
+            <span className="font-mono bg-gray-100 px-2 py-1 rounded">
               /settings
-            </span> ページ
+            </span>{" "}
+            ページ
           </p>
         </div>
       </main>
